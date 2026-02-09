@@ -1,101 +1,187 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="kk">
 <head>
 <meta charset="UTF-8">
-<title>Industrial App</title>
-
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#003366">
-
-<!-- Иконка сайта -->
-<link rel="icon" href="icon-192.png">
+<title>Өндірістік есептер бағдарламасы</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{font-family:Arial;background:#eef;padding:20px}
-.container{max-width:700px;margin:auto}
-.box{background:white;padding:15px;margin:10px 0;border-radius:10px;box-shadow:0 0 8px gray}
-input,button{padding:8px;width:100%;margin:5px 0}
-button{background:green;color:white;border:none;cursor:pointer}
+body{font-family:Arial;background:#0f172a;color:white;padding:20px}
+.container{max-width:900px;margin:auto;background:#111827;padding:20px;border-radius:12px}
+input,select,button{padding:10px;margin:6px;width:100%;border-radius:6px;border:none}
+button{background:#22c55e;color:black;font-weight:bold}
+.hidden{display:none}
+h2,h3{color:#22c55e}
 </style>
-
 </head>
+
 <body>
 
 <div class="container">
-<h1>Industrial Engineering Calculator</h1>
 
-<div class="box">
-<h2>Login</h2>
-<input id="user" placeholder="Name">
-<input id="pass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<p id="msg"></p>
+<!-- ТІРКЕЛУ -->
+<div id="loginBox">
+<h2>🔐 Тіркелу (Кіру)</h2>
+<input id="userName" placeholder="Аты-жөні">
+<input id="userPass" type="password" placeholder="Құпия сөз">
+<button onclick="login()">Кіру</button>
 </div>
 
-<div class="box">
-<h2>Engineering Calculation</h2>
-<input id="N" type="number" placeholder="Machines count">
-<input id="t" type="number" placeholder="Time (h)">
-<input id="k" type="number" placeholder="Efficiency (0-1)">
-<button onclick="calc()">Calculate</button>
-<p id="result"></p>
+<!-- НЕГІЗГІ ҚОСЫМША -->
+<div id="app" class="hidden">
+
+<h2>📚 Салаларды таңдау</h2>
+<select id="sector" onchange="showSector()">
+<option value="">Саланы таңдаңыз</option>
+<option value="eng">1️⃣ Инженерлік өндіріс</option>
+<option value="build">2️⃣ Құрылыс</option>
+<option value="elec">3️⃣ Электрика</option>
+<option value="eco">4️⃣ Экономика</option>
+</select>
+
+<!-- 1. Инженерлік -->
+<div id="eng" class="hidden">
+<h3>⚙ Инженерлік өндіріс</h3>
+<input id="prodPower" placeholder="Өндіріс қуаты (кВт)">
+<input id="elecEnergy" placeholder="Электр энергиясы (кВт/сағ)">
+<button onclick="calcEng()">Есептеу</button>
 </div>
 
-<div class="box">
-<button onclick="saveData()">Save Result</button>
-<button onclick="showData()">Show Saved</button>
-<button onclick="exportPDF()">Export PDF</button>
+<!-- 2. Құрылыс -->
+<div id="build" class="hidden">
+<h3>🏗 Құрылыс</h3>
+<input id="concreteVol" placeholder="Бетон көлемі (м³)">
+<input id="materialQty" placeholder="Материал мөлшері (тонна)">
+<button onclick="calcBuild()">Есептеу</button>
 </div>
 
-<p id="saved"></p>
+<!-- 3. Электрика -->
+<div id="elec" class="hidden">
+<h3>⚡ Электрика</h3>
+<input id="currentI" placeholder="Ток I (Ампер)">
+<input id="voltageU" placeholder="Кернеу U (Вольт)">
+<button onclick="calcElec()">Есептеу</button>
+</div>
 
+<!-- 4. Экономика -->
+<div id="eco" class="hidden">
+<h3>💰 Экономика</h3>
+<input id="costPrice" placeholder="Өзіндік құн (теңге)">
+<input id="profitVal" placeholder="Пайда (теңге)">
+<button onclick="calcEco()">Есептеу</button>
+</div>
+
+<!-- НӘТИЖЕ -->
+<h3>📊 Есептеу нәтижелері</h3>
+<div id="result"></div>
+
+<canvas id="chart"></canvas>
+
+<button onclick="saveData()">💾 Сақтау</button>
+<button onclick="exportCSV()">📁 CSV экспорт</button>
+<button onclick="exportPDF()">📄 PDF экспорт</button>
+
+</div>
 </div>
 
 <script>
-// LOGIN
+let results=[];
+
+// ТІРКЕЛУ
 function login(){
-let u=user.value;
-let p=pass.value;
-if(u && p){
-msg.innerHTML="Hello, "+u;
-}else{
-alert("Enter name and password");
-}
+ let name=document.getElementById("userName").value;
+ let pass=document.getElementById("userPass").value;
+
+ if(name=="" || pass==""){
+   alert("Аты-жөні мен құпия сөзді енгіз!");
+   return;
+ }
+
+ document.getElementById("loginBox").classList.add("hidden");
+ document.getElementById("app").classList.remove("hidden");
 }
 
-// CALC
-function calc(){
-let N=parseFloat(N.value);
-let t=parseFloat(t.value);
-let k=parseFloat(k.value);
-let prod=N*t*k;
-result.innerHTML="Production = "+prod;
+// САЛАЛАРДЫ КӨРСЕТУ
+function showSector(){
+ document.querySelectorAll("#eng,#build,#elec,#eco").forEach(x=>x.classList.add("hidden"));
+ let s=document.getElementById("sector").value;
+ if(s) document.getElementById(s).classList.remove("hidden");
 }
 
-// SAVE LOCAL
+// 1️⃣ Инженерлік есеп
+function calcEng(){
+ let p=+prodPower.value;
+ let e=+elecEnergy.value;
+ let eff=(p/e)*100;
+ addResult("Инженерлік тиімділік = "+eff.toFixed(2)+" %");
+}
+
+// 2️⃣ Құрылыс есеп
+function calcBuild(){
+ let c=+concreteVol.value;
+ let m=+materialQty.value;
+ let ratio=c/m;
+ addResult("Бетон/материал қатынасы = "+ratio.toFixed(2));
+}
+
+// 3️⃣ Электрика есеп
+function calcElec(){
+ let i=+currentI.value;
+ let u=+voltageU.value;
+ let p=i*u;
+ addResult("Қуат P = "+p+" Вт");
+}
+
+// 4️⃣ Экономика есеп
+function calcEco(){
+ let c=+costPrice.value;
+ let p=+profitVal.value;
+ let margin=(p/c)*100;
+ addResult("Пайда маржасы = "+margin.toFixed(2)+" %");
+}
+
+// НӘТИЖЕ ҚОСУ
+function addResult(text){
+ results.push(text);
+ document.getElementById("result").innerHTML=results.join("<br>");
+ drawChart();
+}
+
+// ГРАФИК
+function drawChart(){
+ let ctx=document.getElementById("chart");
+ new Chart(ctx,{
+  type:"bar",
+  data:{
+   labels:results.map((_,i)=>"Нәтиже "+(i+1)),
+   datasets:[{label:"Есептер",data:results.map((_,i)=>i+1)}]
+  }
+ });
+}
+
+// САҚТАУ (браузерде)
 function saveData(){
-localStorage.setItem("result",result.innerHTML);
-alert("Saved!");
+ localStorage.setItem("industrial_results",JSON.stringify(results));
+ alert("Нәтижелер сақталды!");
 }
 
-// SHOW SAVED
-function showData(){
-saved.innerHTML="Saved: "+localStorage.getItem("result");
+// CSV экспорт
+function exportCSV(){
+ let csv=results.join("\n");
+ let blob=new Blob([csv],{type:"text/csv"});
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="esepter.csv";
+ a.click();
 }
 
-// PDF EXPORT
+// PDF экспорт
 function exportPDF(){
-let w=window.open("");
-w.document.write("<h1>Result</h1>"+localStorage.getItem("result"));
-w.print();
-}
-
-// REGISTER SERVICE WORKER
-if('serviceWorker' in navigator){
-navigator.serviceWorker.register("service-worker.js")
-.then(()=>console.log("SW registered"))
-.catch(err=>console.log("SW error",err));
+ const {jsPDF}=window.jspdf;
+ let pdf=new jsPDF();
+ results.forEach((r,i)=>pdf.text(r,10,10+i*10));
+ pdf.save("esepter.pdf");
 }
 </script>
 
