@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Industrial App</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#003366">
+
+<!-- Иконка сайта -->
+<link rel="icon" href="icon-192.png">
+
+<style>
+body{font-family:Arial;background:#eef;padding:20px}
+.container{max-width:700px;margin:auto}
+.box{background:white;padding:15px;margin:10px 0;border-radius:10px;box-shadow:0 0 8px gray}
+input,button{padding:8px;width:100%;margin:5px 0}
+button{background:green;color:white;border:none;cursor:pointer}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+<h1>Industrial Engineering Calculator</h1>
+
+<div class="box">
+<h2>Login</h2>
+<input id="user" placeholder="Name">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<p id="msg"></p>
+</div>
+
+<div class="box">
+<h2>Engineering Calculation</h2>
+<input id="N" type="number" placeholder="Machines count">
+<input id="t" type="number" placeholder="Time (h)">
+<input id="k" type="number" placeholder="Efficiency (0-1)">
+<button onclick="calc()">Calculate</button>
+<p id="result"></p>
+</div>
+
+<div class="box">
+<button onclick="saveData()">Save Result</button>
+<button onclick="showData()">Show Saved</button>
+<button onclick="exportPDF()">Export PDF</button>
+</div>
+
+<p id="saved"></p>
+
+</div>
+
+<script>
+// LOGIN
+function login(){
+let u=user.value;
+let p=pass.value;
+if(u && p){
+msg.innerHTML="Hello, "+u;
+}else{
+alert("Enter name and password");
+}
+}
+
+// CALC
+function calc(){
+let N=parseFloat(N.value);
+let t=parseFloat(t.value);
+let k=parseFloat(k.value);
+let prod=N*t*k;
+result.innerHTML="Production = "+prod;
+}
+
+// SAVE LOCAL
+function saveData(){
+localStorage.setItem("result",result.innerHTML);
+alert("Saved!");
+}
+
+// SHOW SAVED
+function showData(){
+saved.innerHTML="Saved: "+localStorage.getItem("result");
+}
+
+// PDF EXPORT
+function exportPDF(){
+let w=window.open("");
+w.document.write("<h1>Result</h1>"+localStorage.getItem("result"));
+w.print();
+}
+
+// REGISTER SERVICE WORKER
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register("service-worker.js")
+.then(()=>console.log("SW registered"))
+.catch(err=>console.log("SW error",err));
+}
+</script>
+
+</body>
+</html>
